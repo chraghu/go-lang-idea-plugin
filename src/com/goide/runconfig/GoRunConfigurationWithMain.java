@@ -53,6 +53,7 @@ public abstract class GoRunConfigurationWithMain<T extends GoRunningState> exten
   }
 
   protected void checkFileConfiguration() throws RuntimeConfigurationError {
+    /*
     VirtualFile file = findFile(getFilePath());
     if (file == null) {
       throw new RuntimeConfigurationError("Main file is not specified");
@@ -64,6 +65,7 @@ public abstract class GoRunConfigurationWithMain<T extends GoRunningState> exten
     if (!GoRunUtil.isMainGoFile(psiFile)) {
       throw new RuntimeConfigurationError("Main file has non-main package or doesn't contain main function");
     }
+    */
   }
 
   protected void checkBaseConfiguration() throws RuntimeConfigurationException {
