@@ -51,6 +51,9 @@ import com.intellij.xdebugger.frame.presentation.XValuePresentation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import com.intellij.execution.configurations.RunProfile;
+import com.goide.runconfig.GoRunConfigurationBase;
+
 import javax.swing.*;
 import java.util.Collection;
 import java.util.Iterator;
@@ -143,12 +146,23 @@ class DlvXValue extends XNamedValue {
   }
 
   @Nullable
-  private static PsiElement findTargetElement(@NotNull Project project,
+  private PsiElement findTargetElement(@NotNull Project project,
                                               @NotNull XSourcePosition position,
                                               @NotNull Editor editor,
                                               @NotNull String name) {
+
+    RunProfile profile = getSession().getRunProfile();
+    GoRunConfigurationBase goRunConf = profile instanceof GoRunConfigurationBase ? ((GoRunConfigurationBase)profile) : null;
+    String wdPath = "";
+    if (goRunConf != null) {
+      wdPath = goRunConf.getWorkingDirectory();
+      if (wdPath.length() > 0 && !wdPath.substring(wdPath.length() - 1).equals("/")) {
+        wdPath += "/";
+      }
+    }
+
     PsiFile file = PsiDocumentManager.getInstance(project).getPsiFile(editor.getDocument());
-    if (file == null || !file.getVirtualFile().equals(position.getFile())) return null;
+    if (file == null || !file.getVirtualFile().getPath().equals(position.getFile().getPath().replaceFirst(wdPath, ""))) return null;
     ASTNode leafElement = file.getNode().findLeafElementAt(position.getOffset());
     if (leafElement == null) return null;
     GoTopLevelDeclaration topLevel = PsiTreeUtil.getTopmostParentOfType(leafElement.getPsi(), GoTopLevelDeclaration.class);

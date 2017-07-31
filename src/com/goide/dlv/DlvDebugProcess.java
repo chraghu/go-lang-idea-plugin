@@ -57,6 +57,9 @@ import org.jetbrains.debugger.StepAction;
 import org.jetbrains.debugger.Vm;
 import org.jetbrains.debugger.connection.VmConnection;
 
+import com.intellij.execution.configurations.RunProfile;
+import com.goide.runconfig.GoRunConfigurationBase;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -255,11 +258,24 @@ public final class DlvDebugProcess extends DebugProcessImpl<VmConnection<?>> imp
 
     @Override
     public void registerBreakpoint(@NotNull XLineBreakpoint<DlvBreakpointProperties> breakpoint) {
+      RunProfile profile = getSession().getRunProfile();
+      GoRunConfigurationBase goRunConf = profile instanceof GoRunConfigurationBase ? ((GoRunConfigurationBase)profile) : null;
+      String wdPath = "";
+      if (goRunConf != null) {
+        wdPath = goRunConf.getWorkingDirectory();
+        if (wdPath.length() > 0 && !wdPath.substring(wdPath.length() - 1).equals("/")) {
+          wdPath += "/";
+        }
+      }
+
       XSourcePosition breakpointPosition = breakpoint.getSourcePosition();
       if (breakpointPosition == null) return;
       VirtualFile file = breakpointPosition.getFile();
+
+      String path = file.getPath().replaceFirst(wdPath, "");
+
       int line = breakpointPosition.getLine();
-      send(new DlvRequest.CreateBreakpoint(file.getPath(), line + 1))
+      send(new DlvRequest.CreateBreakpoint(path, line + 1))
         .done(b -> {
           breakpoint.putUserData(ID, b.id);
           breakpoints.put(b.id, breakpoint);

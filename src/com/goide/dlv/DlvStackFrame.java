@@ -16,6 +16,8 @@
 
 package com.goide.dlv;
 
+import java.nio.file.Paths;
+
 import com.goide.GoIcons;
 import com.goide.dlv.protocol.DlvApi;
 import com.goide.dlv.protocol.DlvRequest;
@@ -24,6 +26,7 @@ import com.goide.sdk.GoSdkService;
 import com.intellij.execution.configurations.ModuleBasedConfiguration;
 import com.intellij.execution.configurations.RunProfile;
 import com.intellij.icons.AllIcons;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.project.IndexNotReadyException;
@@ -50,10 +53,14 @@ import com.intellij.xdebugger.frame.XValueChildrenList;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.concurrency.Promise;
+import com.goide.runconfig.GoRunConfigurationBase;
 
 import javax.swing.*;
 
 class DlvStackFrame extends XStackFrame {
+
+  private final static Logger LOG = Logger.getInstance(DlvStackFrame.class);
+
   private final DlvDebugProcess myProcess;
   private final DlvApi.Location myLocation;
   private final DlvCommandProcessor myProcessor;
@@ -128,11 +135,20 @@ class DlvStackFrame extends XStackFrame {
 
   @Nullable
   private VirtualFile findFile() {
-    String url = myLocation.file;
+    RunProfile profile = myProcess.getSession().getRunProfile();
+    GoRunConfigurationBase goRunConf = profile instanceof GoRunConfigurationBase ? ((GoRunConfigurationBase)profile) : null;
+
+    String url;
+    if (goRunConf != null) {
+      url = Paths.get(goRunConf.getWorkingDirectory(), myLocation.file).toString();
+    } else {
+      LOG.warn("goRunConf is null");
+      url = myLocation.file;
+    }
+
     VirtualFile file = LocalFileSystem.getInstance().findFileByPath(url);
     if (file == null && SystemInfo.isWindows) {
-      Project project = myProcess.getSession().getProject();
-      RunProfile profile = myProcess.getSession().getRunProfile();
+    Project project = myProcess.getSession().getProject();
       Module module = profile instanceof ModuleBasedConfiguration ? ((ModuleBasedConfiguration)profile).getConfigurationModule().getModule() : null;
       String sdkHomePath = GoSdkService.getInstance(project).getSdkHomePath(module);
       if (sdkHomePath == null) return null;
